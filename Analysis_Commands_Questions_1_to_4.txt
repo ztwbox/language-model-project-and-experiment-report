@@ -1,0 +1,184 @@
+COMMANDS FOR THE FINAL REVISED QUESTIONS 1 TO 4
+PowerShell syntax. Word creation/export commands and superseded experiments are excluded.
+Logging/skip wrappers are omitted; training arguments are taken from saved meta.json files.
+
+Set-Location "C:\Users\wanch\Desktop\DeepLearningAssigment1\DeepDataMiningLearning-main\DeepDataMiningLearning\llm"
+$py = "C:\Users\wanch\Desktop\DeepLearningAssigment1\DeepDataMiningLearning-main\.venv\Scripts\python.exe"
+
+
+QUESTION 1 METRICS BY HAND USING 01_char_rnn.yaml
+=================================================
+
+& $py -u -m nanolm.train -c nanolm/configs/01_char_rnn.yaml run_dir=outputs/nanolm/question1_char_rnn/trained
+& $py -u -m nanolm.train -c nanolm/configs/01_char_rnn.yaml run_dir=outputs/nanolm/question1_char_rnn/untrained_char name=char_lstm_untrained_char data.tokenizer=char train.max_steps=1 train.lr=0 train.eval_every=0 train.log_every=1 eval.sample_tokens=0
+& $py -u -m nanolm.train -c nanolm/configs/01_char_rnn.yaml run_dir=outputs/nanolm/question1_char_rnn/untrained_byte name=char_lstm_untrained_byte data.tokenizer=byte train.max_steps=1 train.lr=0 train.eval_every=0 train.log_every=1 eval.sample_tokens=0
+
+Analysis was performed with inline Python, not nanolm.analyze:
+  total_nats = val_loss * val_tokens
+  recomputed_loss = total_nats / val_tokens
+  perplexity = math.exp(val_loss)
+  bits_per_token = val_loss / math.log(2)
+  bits_per_byte = total_nats / (val_bytes * math.log(2))
+  untrained_baseline = math.log(vocab_size)
+Perplexity and bpb were compared with the logged values.
+Independent CPU checkpoint evaluation used nanolm.generate.load_run and nanolm.evaluate.evaluate.
+For each zero-learning-rate run, saved weights were compared with a freshly seeded instance
+of the existing model using torch.equal. Results: outputs/nanolm/question1_char_rnn/metrics_by_hand.json
+
+QUESTION 2 ARCHITECTURE SWEEP AND ANALYSIS
+==========================================
+
+& $py -u -m nanolm.sweep --sweep nanolm/configs/sweeps/01_char_models.yaml --gpus 0
+& $py -u -m nanolm.analyze outputs/nanolm/sweeps/char_models --baseline gpt_textbook --metric val_bpb
+
+The sweep launched these 12 training commands:
+& $py -m nanolm.train --config C:\Users\wanch\Desktop\DeepLearningAssigment1\DeepDataMiningLearning-main\DeepDataMiningLearning\llm\nanolm\configs\02_char_transformer.yaml train.max_steps=2000 train.seq_len=256 train.batch_size=32 model.arch="rnn" model.n_layers=2 model.dim=256 train.lr="2e-3" train.weight_decay=0.0 name=rnn seed=1337 run_dir=C:\Users\wanch\Desktop\DeepLearningAssigment1\DeepDataMiningLearning-main\DeepDataMiningLearning\llm\outputs\nanolm\sweeps\char_models\rnn_s1337 tags=["char_models"]
+& $py -m nanolm.train --config C:\Users\wanch\Desktop\DeepLearningAssigment1\DeepDataMiningLearning-main\DeepDataMiningLearning\llm\nanolm\configs\02_char_transformer.yaml train.max_steps=2000 train.seq_len=256 train.batch_size=32 model.arch="rnn" model.n_layers=2 model.dim=256 train.lr="2e-3" train.weight_decay=0.0 name=rnn seed=42 run_dir=C:\Users\wanch\Desktop\DeepLearningAssigment1\DeepDataMiningLearning-main\DeepDataMiningLearning\llm\outputs\nanolm\sweeps\char_models\rnn_s42 tags=["char_models"]
+& $py -m nanolm.train --config C:\Users\wanch\Desktop\DeepLearningAssigment1\DeepDataMiningLearning-main\DeepDataMiningLearning\llm\nanolm\configs\02_char_transformer.yaml train.max_steps=2000 train.seq_len=256 train.batch_size=32 model.arch="gru" model.n_layers=2 model.dim=256 train.lr="2e-3" train.weight_decay=0.0 name=gru seed=1337 run_dir=C:\Users\wanch\Desktop\DeepLearningAssigment1\DeepDataMiningLearning-main\DeepDataMiningLearning\llm\outputs\nanolm\sweeps\char_models\gru_s1337 tags=["char_models"]
+& $py -m nanolm.train --config C:\Users\wanch\Desktop\DeepLearningAssigment1\DeepDataMiningLearning-main\DeepDataMiningLearning\llm\nanolm\configs\02_char_transformer.yaml train.max_steps=2000 train.seq_len=256 train.batch_size=32 model.arch="gru" model.n_layers=2 model.dim=256 train.lr="2e-3" train.weight_decay=0.0 name=gru seed=42 run_dir=C:\Users\wanch\Desktop\DeepLearningAssigment1\DeepDataMiningLearning-main\DeepDataMiningLearning\llm\outputs\nanolm\sweeps\char_models\gru_s42 tags=["char_models"]
+& $py -m nanolm.train --config C:\Users\wanch\Desktop\DeepLearningAssigment1\DeepDataMiningLearning-main\DeepDataMiningLearning\llm\nanolm\configs\02_char_transformer.yaml train.max_steps=2000 train.seq_len=256 train.batch_size=32 model.arch="lstm" model.n_layers=2 model.dim=256 train.lr="2e-3" train.weight_decay=0.0 name=lstm seed=1337 run_dir=C:\Users\wanch\Desktop\DeepLearningAssigment1\DeepDataMiningLearning-main\DeepDataMiningLearning\llm\outputs\nanolm\sweeps\char_models\lstm_s1337 tags=["char_models"]
+& $py -m nanolm.train --config C:\Users\wanch\Desktop\DeepLearningAssigment1\DeepDataMiningLearning-main\DeepDataMiningLearning\llm\nanolm\configs\02_char_transformer.yaml train.max_steps=2000 train.seq_len=256 train.batch_size=32 model.arch="lstm" model.n_layers=2 model.dim=256 train.lr="2e-3" train.weight_decay=0.0 name=lstm seed=42 run_dir=C:\Users\wanch\Desktop\DeepLearningAssigment1\DeepDataMiningLearning-main\DeepDataMiningLearning\llm\outputs\nanolm\sweeps\char_models\lstm_s42 tags=["char_models"]
+& $py -m nanolm.train --config C:\Users\wanch\Desktop\DeepLearningAssigment1\DeepDataMiningLearning-main\DeepDataMiningLearning\llm\nanolm\configs\02_char_transformer.yaml train.max_steps=2000 train.seq_len=256 train.batch_size=32 model.arch="lstm" model.n_layers=2 model.dim=512 train.lr="2e-3" train.weight_decay=0.0 name=lstm_512 seed=1337 run_dir=C:\Users\wanch\Desktop\DeepLearningAssigment1\DeepDataMiningLearning-main\DeepDataMiningLearning\llm\outputs\nanolm\sweeps\char_models\lstm_512_s1337 tags=["char_models"]
+& $py -m nanolm.train --config C:\Users\wanch\Desktop\DeepLearningAssigment1\DeepDataMiningLearning-main\DeepDataMiningLearning\llm\nanolm\configs\02_char_transformer.yaml train.max_steps=2000 train.seq_len=256 train.batch_size=32 model.arch="lstm" model.n_layers=2 model.dim=512 train.lr="2e-3" train.weight_decay=0.0 name=lstm_512 seed=42 run_dir=C:\Users\wanch\Desktop\DeepLearningAssigment1\DeepDataMiningLearning-main\DeepDataMiningLearning\llm\outputs\nanolm\sweeps\char_models\lstm_512_s42 tags=["char_models"]
+& $py -m nanolm.train --config C:\Users\wanch\Desktop\DeepLearningAssigment1\DeepDataMiningLearning-main\DeepDataMiningLearning\llm\nanolm\configs\02_char_transformer.yaml train.max_steps=2000 train.seq_len=256 train.batch_size=32 name=gpt_textbook seed=1337 run_dir=C:\Users\wanch\Desktop\DeepLearningAssigment1\DeepDataMiningLearning-main\DeepDataMiningLearning\llm\outputs\nanolm\sweeps\char_models\gpt_textbook_s1337 tags=["char_models"]
+& $py -m nanolm.train --config C:\Users\wanch\Desktop\DeepLearningAssigment1\DeepDataMiningLearning-main\DeepDataMiningLearning\llm\nanolm\configs\02_char_transformer.yaml train.max_steps=2000 train.seq_len=256 train.batch_size=32 name=gpt_textbook seed=42 run_dir=C:\Users\wanch\Desktop\DeepLearningAssigment1\DeepDataMiningLearning-main\DeepDataMiningLearning\llm\outputs\nanolm\sweeps\char_models\gpt_textbook_s42 tags=["char_models"]
+& $py -m nanolm.train --config C:\Users\wanch\Desktop\DeepLearningAssigment1\DeepDataMiningLearning-main\DeepDataMiningLearning\llm\nanolm\configs\02_char_transformer.yaml train.max_steps=2000 train.seq_len=256 train.batch_size=32 model.norm="rmsnorm" model.pos="rope" model.mlp="swiglu" model.bias=false name=gpt_modern seed=1337 run_dir=C:\Users\wanch\Desktop\DeepLearningAssigment1\DeepDataMiningLearning-main\DeepDataMiningLearning\llm\outputs\nanolm\sweeps\char_models\gpt_modern_s1337 tags=["char_models"]
+& $py -m nanolm.train --config C:\Users\wanch\Desktop\DeepLearningAssigment1\DeepDataMiningLearning-main\DeepDataMiningLearning\llm\nanolm\configs\02_char_transformer.yaml train.max_steps=2000 train.seq_len=256 train.batch_size=32 model.norm="rmsnorm" model.pos="rope" model.mlp="swiglu" model.bias=false name=gpt_modern seed=42 run_dir=C:\Users\wanch\Desktop\DeepLearningAssigment1\DeepDataMiningLearning-main\DeepDataMiningLearning\llm\outputs\nanolm\sweeps\char_models\gpt_modern_s42 tags=["char_models"]
+
+The saved recurrent checkpoints were independently re-evaluated on CPU with the existing
+load_run, TokenData, byte_lut_tensors and evaluate functions.
+The Word table read these saved metrics; no custom model architecture was created.
+
+QUESTION 3 CONTEXT LENGTH USING THE REQUESTED BASE CONFIGS
+==========================================================
+
+Contexts: 64, 128, 256, 512; batch sizes: 128, 64, 32, 16.
+Seeds: 1337 and 42. Each run: 2,000 steps and 16,384,000 training tokens.
+Each evaluation predicts the same 111,104 held-out characters.
+
+& $py -u -m nanolm.train -c nanolm/configs/01_char_rnn.yaml name=LSTM_ctx64 seed=1337 run_dir=outputs\nanolm\context_length_base_configs\LSTM_ctx64_s1337 train.seq_len=64 train.batch_size=128 train.max_steps=2000 train.eval_tokens=111104 eval.final_eval_tokens=111104 eval.sample_tokens=0
+& $py -u -m nanolm.train -c nanolm/configs/01_char_rnn.yaml name=LSTM_ctx64 seed=42 run_dir=outputs\nanolm\context_length_base_configs\LSTM_ctx64_s42 train.seq_len=64 train.batch_size=128 train.max_steps=2000 train.eval_tokens=111104 eval.final_eval_tokens=111104 eval.sample_tokens=0
+& $py -u -m nanolm.train -c nanolm/configs/01_char_rnn.yaml name=LSTM_ctx128 seed=1337 run_dir=outputs\nanolm\context_length_base_configs\LSTM_ctx128_s1337 train.seq_len=128 train.batch_size=64 train.max_steps=2000 train.eval_tokens=111104 eval.final_eval_tokens=111104 eval.sample_tokens=0
+& $py -u -m nanolm.train -c nanolm/configs/01_char_rnn.yaml name=LSTM_ctx128 seed=42 run_dir=outputs\nanolm\context_length_base_configs\LSTM_ctx128_s42 train.seq_len=128 train.batch_size=64 train.max_steps=2000 train.eval_tokens=111104 eval.final_eval_tokens=111104 eval.sample_tokens=0
+& $py -u -m nanolm.train -c nanolm/configs/01_char_rnn.yaml name=LSTM_ctx256 seed=1337 run_dir=outputs\nanolm\context_length_base_configs\LSTM_ctx256_s1337 train.seq_len=256 train.batch_size=32 train.max_steps=2000 train.eval_tokens=111104 eval.final_eval_tokens=111104 eval.sample_tokens=0
+& $py -u -m nanolm.train -c nanolm/configs/01_char_rnn.yaml name=LSTM_ctx256 seed=42 run_dir=outputs\nanolm\context_length_base_configs\LSTM_ctx256_s42 train.seq_len=256 train.batch_size=32 train.max_steps=2000 train.eval_tokens=111104 eval.final_eval_tokens=111104 eval.sample_tokens=0
+& $py -u -m nanolm.train -c nanolm/configs/01_char_rnn.yaml name=LSTM_ctx512 seed=1337 run_dir=outputs\nanolm\context_length_base_configs\LSTM_ctx512_s1337 train.seq_len=512 train.batch_size=16 train.max_steps=2000 train.eval_tokens=111104 eval.final_eval_tokens=111104 eval.sample_tokens=0
+& $py -u -m nanolm.train -c nanolm/configs/01_char_rnn.yaml name=LSTM_ctx512 seed=42 run_dir=outputs\nanolm\context_length_base_configs\LSTM_ctx512_s42 train.seq_len=512 train.batch_size=16 train.max_steps=2000 train.eval_tokens=111104 eval.final_eval_tokens=111104 eval.sample_tokens=0
+& $py -u -m nanolm.train -c nanolm/configs/02b_char_transformer_modern.yaml name=ModernGPT_ctx64 seed=1337 run_dir=outputs\nanolm\context_length_base_configs\ModernGPT_ctx64_s1337 train.seq_len=64 train.batch_size=128 train.max_steps=2000 train.eval_tokens=111104 eval.final_eval_tokens=111104 eval.sample_tokens=0
+& $py -u -m nanolm.train -c nanolm/configs/02b_char_transformer_modern.yaml name=ModernGPT_ctx64 seed=42 run_dir=outputs\nanolm\context_length_base_configs\ModernGPT_ctx64_s42 train.seq_len=64 train.batch_size=128 train.max_steps=2000 train.eval_tokens=111104 eval.final_eval_tokens=111104 eval.sample_tokens=0
+& $py -u -m nanolm.train -c nanolm/configs/02b_char_transformer_modern.yaml name=ModernGPT_ctx128 seed=1337 run_dir=outputs\nanolm\context_length_base_configs\ModernGPT_ctx128_s1337 train.seq_len=128 train.batch_size=64 train.max_steps=2000 train.eval_tokens=111104 eval.final_eval_tokens=111104 eval.sample_tokens=0
+& $py -u -m nanolm.train -c nanolm/configs/02b_char_transformer_modern.yaml name=ModernGPT_ctx128 seed=42 run_dir=outputs\nanolm\context_length_base_configs\ModernGPT_ctx128_s42 train.seq_len=128 train.batch_size=64 train.max_steps=2000 train.eval_tokens=111104 eval.final_eval_tokens=111104 eval.sample_tokens=0
+& $py -u -m nanolm.train -c nanolm/configs/02b_char_transformer_modern.yaml name=ModernGPT_ctx256 seed=1337 run_dir=outputs\nanolm\context_length_base_configs\ModernGPT_ctx256_s1337 train.seq_len=256 train.batch_size=32 train.max_steps=2000 train.eval_tokens=111104 eval.final_eval_tokens=111104 eval.sample_tokens=0
+& $py -u -m nanolm.train -c nanolm/configs/02b_char_transformer_modern.yaml name=ModernGPT_ctx256 seed=42 run_dir=outputs\nanolm\context_length_base_configs\ModernGPT_ctx256_s42 train.seq_len=256 train.batch_size=32 train.max_steps=2000 train.eval_tokens=111104 eval.final_eval_tokens=111104 eval.sample_tokens=0
+& $py -u -m nanolm.train -c nanolm/configs/02b_char_transformer_modern.yaml name=ModernGPT_ctx512 seed=1337 run_dir=outputs\nanolm\context_length_base_configs\ModernGPT_ctx512_s1337 train.seq_len=512 train.batch_size=16 train.max_steps=2000 train.eval_tokens=111104 eval.final_eval_tokens=111104 eval.sample_tokens=0
+& $py -u -m nanolm.train -c nanolm/configs/02b_char_transformer_modern.yaml name=ModernGPT_ctx512 seed=42 run_dir=outputs\nanolm\context_length_base_configs\ModernGPT_ctx512_s42 train.seq_len=512 train.batch_size=16 train.max_steps=2000 train.eval_tokens=111104 eval.final_eval_tokens=111104 eval.sample_tokens=0
+
+& $py -u -m nanolm.analyze outputs/nanolm/context_length_base_configs --metric val_bpb
+& $py -u "C:\Users\wanch\.codex\visualizations\2026\10\21\01a160b5-d987-77d0-9d15-2da4574a3a52\plot_context_results.py" outputs/nanolm/context_length_base_configs
+
+The plotting helper validates the original source configs, equal budgets and counts,
+then plots saved metrics. It does not train or define models.
+Independent recurrent checkpoint checks: outputs/nanolm/context_length_base_configs/checkpoint_verification.json
+
+QUESTION 4 ATTENTION ANALYSIS ON THREE TEXT TYPES
+=================================================
+
+$env:PYTHONPATH = "C:\Users\wanch\Desktop\DeepLearningAssigment1\DeepDataMiningLearning-main\DeepDataMiningLearning\llm"
+
+# dialogue
+Set-Location "C:\Users\wanch\Desktop\DeepLearningAssigment1\DeepDataMiningLearning-main\DeepDataMiningLearning\llm\outputs\nanolm\question4_attention\dialogue"
+& $py -m nanolm.viz attention --run "C:\Users\wanch\Desktop\DeepLearningAssigment1\DeepDataMiningLearning-main\DeepDataMiningLearning\llm\outputs\nanolm\context_length_base_configs\ModernGPT_ctx512_s42" --text "ROMEO:`nBut soft! what light through"
+
+# prose
+Set-Location "C:\Users\wanch\Desktop\DeepLearningAssigment1\DeepDataMiningLearning-main\DeepDataMiningLearning\llm\outputs\nanolm\question4_attention\prose"
+& $py -m nanolm.viz attention --run "C:\Users\wanch\Desktop\DeepLearningAssigment1\DeepDataMiningLearning-main\DeepDataMiningLearning\llm\outputs\nanolm\context_length_base_configs\ModernGPT_ctx512_s42" --text "The quiet river runs beneath the old bridge."
+
+# repetition
+Set-Location "C:\Users\wanch\Desktop\DeepLearningAssigment1\DeepDataMiningLearning-main\DeepDataMiningLearning\llm\outputs\nanolm\question4_attention\repetition"
+& $py -m nanolm.viz attention --run "C:\Users\wanch\Desktop\DeepLearningAssigment1\DeepDataMiningLearning-main\DeepDataMiningLearning\llm\outputs\nanolm\context_length_base_configs\ModernGPT_ctx512_s42" --text "the silver river and the silver river"
+
+Set-Location "C:\Users\wanch\Desktop\DeepLearningAssigment1\DeepDataMiningLearning-main\DeepDataMiningLearning\llm"
+
+Supplemental commands actually used to measure all heads and format complete maps:
+& $py -u "C:\Users\wanch\.codex\visualizations\2026\10\21\01a160b5-d987-77d0-9d15-2da4574a3a52\analyze_question4_attention.py"
+& $py "C:\Users\wanch\.codex\visualizations\2026\10\21\01a160b5-d987-77d0-9d15-2da4574a3a52\plot_question4_complete_maps.py"
+
+The first helper called the three native visualization commands above, then used
+nanolm.viz.attention_maps on the same saved checkpoint to calculate average weights,
+uniform baselines and distance-matched controls. The second only redraws the saved arrays.
+Detailed command records: outputs/nanolm/question4_attention/attention_results.json
+Head statistics: outputs/nanolm/question4_attention/attention_statistics.csv
+
+Total recorded run-level commands: 34 (31 training runs and 3 attention visualizations).
+The sweep/analyzer/helper commands above are orchestration and postprocessing, not extra model variants.
+
+INLINE PYTHON ANALYSIS AND CPU VERIFICATION
+===========================================
+
+The inline checks below consolidate the separate calls I ran into one block per question.
+They use the original project loaders, models and evaluator. No model architecture is defined here.
+
+Set-Location "C:\Users\wanch\Desktop\DeepLearningAssigment1\DeepDataMiningLearning-main\DeepDataMiningLearning\llm"
+
+# Question 1: metric conversions, CPU evaluation and unchanged-initial-weight checks
+& $py -u -c @'
+import json, math, torch
+from pathlib import Path
+from nanolm.generate import load_run
+from nanolm.models import build_model
+from nanolm.device import seed_everything
+from nanolm.data import TokenData, byte_lut_tensors
+from nanolm.evaluate import evaluate
+torch.set_num_threads(4)
+root = Path('outputs/nanolm/question1_char_rnn')
+for name in ['trained', 'untrained_char', 'untrained_byte']:
+    run = root / name
+    saved = json.loads((run / 'metrics.json').read_text())
+    cfg, model, tok, dinfo, meta = load_run(str(run), device='cpu')
+    data = TokenData(meta)
+    measured = evaluate(model, data.val_windows(cfg.train.seq_len, cfg.eval.final_eval_tokens), cfg.train.seq_len, cfg.eval.batch_size, byte_lut_tensors(meta, dinfo.device), dinfo)
+    assert abs(measured['bpb'] - saved['val_bpb']) < 0.001
+    if name != 'trained':
+        seed_everything(cfg.seed)
+        initial = build_model(cfg.model)
+        assert all(torch.equal(v, initial.state_dict()[k]) for k, v in model.state_dict().items())
+        print(name, saved['val_loss'], math.log(meta['vocab_size']))
+m = json.loads((root / 'trained/metrics.json').read_text())
+loss = m['val_loss']; total_nats = loss * m['val_tokens']
+ppl = math.exp(loss)
+bits_per_token = loss / math.log(2)
+bpb = total_nats / (m['val_bytes'] * math.log(2))
+assert abs(ppl - m['val_ppl']) < 1e-10
+assert abs(bpb - m['val_bpb']) < 1e-10
+print({'loss': total_nats/m['val_tokens'], 'ppl': ppl, 'bits_per_token': bits_per_token, 'bpb': bpb})
+'@
+
+# Questions 2 and 3: independent CPU checks of completed recurrent checkpoints
+# The original calls were split into batches as checkpoints became available.
+& $py -u -c @'
+import json, torch
+from pathlib import Path
+from nanolm.generate import load_run
+from nanolm.data import TokenData, byte_lut_tensors
+from nanolm.evaluate import evaluate
+torch.set_num_threads(4)
+jobs = []
+for name in ['rnn', 'gru', 'lstm', 'lstm_512']:
+    for seed in [1337, 42]:
+        jobs.append((Path(f'outputs/nanolm/sweeps/char_models/{name}_s{seed}'), 256, 0))
+for length in [64, 128, 256, 512]:
+    for seed in [1337, 42]:
+        jobs.append((Path(f'outputs/nanolm/context_length_base_configs/LSTM_ctx{length}_s{seed}'), length, 111104))
+for run, length, limit in jobs:
+    saved = json.loads((run/'metrics.json').read_text())
+    cfg, model, tok, dinfo, meta = load_run(str(run), device='cpu')
+    data = TokenData(meta)
+    measured = evaluate(model, data.val_windows(length, limit), length, 32, byte_lut_tensors(meta, dinfo.device), dinfo)
+    difference = measured['bpb'] - saved['val_bpb']
+    assert abs(difference) < 0.001
+    print(run.name, difference)
+'@
+
+Question 4 exact measurement code is in analyze_question4_attention.py, listed above.
+The all-layer summary equally averages the 12 text/head means per layer and pattern
+(4 heads x 3 texts); results are in outputs/nanolm/question4_attention/attention_layer_summary.json.
